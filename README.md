@@ -28,11 +28,11 @@ parentheses are not emphasis-normalized: `(tag)` and `((tag))` remain unchanged.
 
 Resolution presets are `832×1216` / `1216×832` (13:19), `896×1152` / `1152×896` (7:9 / 9:7), `1600×640` / `640×1600` (5:2 / 2:5), and `1024×1024`, plus custom dimensions. Custom width and height must be multiples of 64.
 
-The default generation preset is 14 steps, CFG 5, and Euler Ancestral. With `limit_opus_free=true` (the default), only the named normal-resolution presets are accepted; custom sizes, requests over 28 steps, and img2img are rejected rather than silently changed or allowed to incur Anlas. V5 still consumes the Opus usage allowance and can cost Anlas after that allowance is exhausted.
+The default generation preset is 14 steps, CFG 5, and Euler Ancestral. With `limit_opus_free=true` (the default), only the named normal-resolution presets are accepted; custom sizes, requests over 28 steps, and img2img are rejected rather than silently changed or allowed to incur Anlas. The server also checks that the V5 Opus usage allowance is available.
 
 The generation tool includes NovelAI's documented V5 Standard/Light quality tags, Heavy/Light/Human Focus/Furry Focus Undesired Content presets, exact numerical emphasis conversion, random or fixed seeds, up to 22 separate character prompts with per-character Undesired Content and free positioning, and explicit multilingual text rendering. Quality tags default to `none`; Undesired Content defaults to the custom `minimal` preset (`bad quality`) with any caller-supplied negative prompt appended.
 
-Generation tools require `confirm_spend_anlas: true`. They return a local path and metadata, not the generated image bytes, so an MCP client does not automatically place the image in the model's context.
+Paid generation cannot be authorized by a model argument. It is disabled unless the human operator starts the server with `NAID_ALLOW_ANLAS_SPEND=1`; only then may a call use `limit_opus_free=false`. Generated images are returned as local paths rather than image bytes, so an MCP client does not automatically place them in the model's context.
 
 Inpainting, vibe transfer, character-reference controls, and Director Tools are intentionally not exposed because NovelAI V5 does not currently support them.
 

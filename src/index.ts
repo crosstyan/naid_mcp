@@ -15,8 +15,6 @@ const resolutionPresets = {
   custom: [832, 1216],
 } as const;
 
-const spend = z.literal(true).describe("Must be true: this operation may spend NovelAI Anlas.");
-
 function createServer(): McpServer {
   const server = new McpServer(
     { name: "naid-mcp", version: "0.1.0" },
@@ -65,7 +63,7 @@ function createServer(): McpServer {
       render_text: z.string().optional().describe("Optional literal text to render. The server adds language tags and places Text: at the end as NovelAI requires."),
       text_language: z.enum(["auto", "english", "japanese", "chinese"]).default("auto"),
       transparent_background: z.boolean().default(false).describe("Request V5 native straight-alpha PNG output."),
-      limit_opus_free: z.boolean().default(true).describe("Reject requests that cannot qualify for Opus Anlas-free generation: over 1024×1024 total pixels, over 28 steps, or img2img. V5 usage allowance still applies."),
+      limit_opus_free: z.boolean().default(true).describe("Keep generation inside the Opus free allowance. Paid mode is disabled at the server level unless its operator explicitly sets NAID_ALLOW_ANLAS_SPEND=1."),
       timeout_seconds: z.number().int().min(30).max(3000).default(180),
       source_path: z.string().min(1).optional().describe("Optional local image for V5 img2img."),
       img2img_strength: z.number().min(0.01).max(0.99).default(0.7),
@@ -78,7 +76,6 @@ function createServer(): McpServer {
       })).max(22).default([]),
       queue_id: z.string().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/).optional()
         .describe("Optional idempotency key for inspection/cancellation. Concurrent calls with the same ID join the first request and return its result without generating twice."),
-      confirm_spend_anlas: spend,
     }), annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   }, async (args, context) => {
     try {

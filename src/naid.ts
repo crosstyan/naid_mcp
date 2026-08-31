@@ -247,6 +247,9 @@ function validateRenderText(input: GenerateInput): void {
 }
 
 export async function generateImage(input: GenerateInput): Promise<GenerationResult> {
+  if (!input.limitOpusFree && process.env.NAID_ALLOW_ANLAS_SPEND !== "1") {
+    throw new Error("Paid NovelAI generation is disabled by the server operator. Set NAID_ALLOW_ANLAS_SPEND=1 outside the MCP client to enable it intentionally");
+  }
   const token = await getAccessToken();
   const [width, height] = resolution(input.width, input.height, input.limitOpusFree);
   if (input.limitOpusFree && input.steps > 28) throw new Error("Opus Anlas-free generation is limited to 28 steps; set limit_opus_free=false to allow more");

@@ -50,6 +50,14 @@ const names = tools.tools.map((tool) => tool.name).sort();
 for (const expected of ["naid_balance", "naid_convert_prompt", "naid_generate"]) {
   if (!names.includes(expected)) throw new Error(`missing tool: ${expected}`);
 }
+const generateSchema = tools.tools.find((tool) => tool.name === "naid_generate")?.inputSchema;
+if (generateSchema?.properties?.confirm_spend_anlas) throw new Error("model-controlled spending confirmation leaked into tool schema");
+const paidWithoutOperatorApproval = await client.callTool({ name: "naid_generate", arguments: {
+  positive: "must not generate", limit_opus_free: false,
+} });
+if (!paidWithoutOperatorApproval.isError || !paidWithoutOperatorApproval.content?.some((part) => part.type === "text" && part.text.includes("disabled by the server operator"))) {
+  throw new Error("paid generation was not blocked by the operator gate");
+}
 const converted = await client.callTool({ name: "naid_convert_prompt", arguments: { text: "(cat), ((dog)), (blue eyes:1.1), (artist_(circle):0.8)" } });
 const text = converted.content?.find((part) => part.type === "text")?.text;
 if (text !== "(cat), ((dog)), 1.1::blue eyes ::, 0.8::artist_(circle) ::") throw new Error(`unexpected conversion: ${text}`);
@@ -57,7 +65,6 @@ const generated = await client.callTool({ name: "naid_generate", arguments: {
   positive: "test, (composition), (blue eyes:1.1)",
   negative: "(bad hands:0.7)",
   characters: [{ positive: "girl, (red hair:1.2)", negative: "(hat:0.5)" }],
-  confirm_spend_anlas: true,
 } });
 if (generated.isError) throw new Error(`generation failed: ${JSON.stringify(generated.content)}`);
 if (generatedModel !== "nai-diffusion-5-full") throw new Error(`unexpected default model: ${generatedModel}`);
