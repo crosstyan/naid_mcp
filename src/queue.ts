@@ -116,13 +116,17 @@ export class GenerationQueue {
       entry.state = "running";
       // Do not abandon an HTTP request that may already spend Anlas.
       this.removeAbortListener(entry);
-      Promise.resolve(entry.task({
+      const metadata = {
         id: entry.id, initialPosition: entry.initialPosition,
         queuedMs: Date.now() - entry.enqueuedAt, delayMs: entry.delayMs,
-      })).then(entry.resolve, entry.reject).finally(() => {
-        if (this.current === entry) this.current = undefined;
-        this.pump();
-      });
+      };
+      // Invoke through a promise so synchronous throws follow the same path.
+      // Clear internal state before settling the public promise: callers may
+      // inspect the queue or reuse the ID immediately after await returns.
+      void Promise.resolve().then(() => entry.task(metadata)).then(
+        (value) => { this.finish(entry); entry.resolve(value); },
+        (error) => { this.finish(entry); entry.reject(error); },
+      );
     };
     if (entry.delayMs === 0) start();
     else entry.timer = setTimeout(start, entry.delayMs);
@@ -130,6 +134,10 @@ export class GenerationQueue {
 
   private removeAbortListener(entry: Entry): void {
     if (entry.signal && entry.abortListener) entry.signal.removeEventListener("abort", entry.abortListener);
+  }
+  private finish(entry: Entry): void {
+    if (this.current === entry) this.current = undefined;
+    this.pump();
   }
   private randomDelay(): number {
     return this.minDelayMs === this.maxDelayMs ? this.minDelayMs : randomInt(this.minDelayMs, this.maxDelayMs + 1);

@@ -22,4 +22,7 @@ release();
 const results = await Promise.all(jobs.slice(0, 7));
 if (results.join(",") !== "0,1,2,3,4,5,6") throw new Error(`queue order changed: ${results}`);
 if (await duplicate !== 0) throw new Error("duplicate did not join the original request");
-console.log("ok: generation queue capacity, idempotency, order, and cancellation");
+if (queue.size !== 0) throw new Error(`queue remained busy after settled results: ${JSON.stringify(queue.snapshot())}`);
+if (await queue.enqueue(async () => 10, { id: "job-0" }) !== 10) throw new Error("settled queue ID was not immediately reusable");
+if (queue.size !== 0) throw new Error(`queue remained busy after reused ID: ${JSON.stringify(queue.snapshot())}`);
+console.log("ok: generation queue capacity, idempotency, order, cancellation, and immediate ID reuse");
