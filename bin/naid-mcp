@@ -1,0 +1,14 @@
+#!/usr/bin/env zsh
+
+# NovelAI is not directly reachable on every network. Reuse the user's optional
+# proxy setup without copying proxy credentials into MCP client configuration.
+if [[ -z ${NOVEL_AI_API_KEY:-} && -r "$HOME/.zshrc" ]]; then
+  source "$HOME/.zshrc" >/dev/null 2>&1
+fi
+
+if [[ -r "$HOME/proxy.sh" ]]; then
+  source "$HOME/proxy.sh" >/dev/null 2>&1
+fi
+
+export NODE_USE_ENV_PROXY=1
+exec /usr/bin/node /home/crosstyan/Code/naid-mcp/dist/index.js "$@"
