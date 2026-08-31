@@ -203,7 +203,8 @@ const qualitySuffixes = {
 const undesiredContentPresets = {
   minimal: "bad quality",
   heavy: "lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page",
-  light: "lowres, lipstick, bad hands, bad anatomy, artistic error, sepia, white haze, worst quality, bad quality, very displeasing, jpeg artifacts, 0::ai-generated::",
+  // NovelAI V5 Light UC plus the user's local default exclusion.
+  light: "lowres, lipstick, bad hands, bad anatomy, artistic error, sepia, white haze, worst quality, very displeasing, jpeg artifacts, 0::ai-generated::",
   furry_focus: "{worst quality}, distracting watermark, unfinished, bad quality, {widescreen}, upscale, {sequence}, {{grandfathered content}}, blurred foreground, chromatic aberration, sketch, everyone, [sketch background], simple, [flat colors], ych (character), outline, multiple scenes, [[horror (theme)]], comic",
   human_focus: "lowres, artistic error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, dithering, halftone, screentone, multiple views, logo, too many watermarks, negative space, blank page, @_@, mismatched pupils, glowing eyes, bad anatomy",
 } as const;

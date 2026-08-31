@@ -58,9 +58,9 @@ function createServer(): McpServer {
       sampler: z.enum(samplers).default("k_euler_ancestral"),
       seed: z.number().int().min(-1).max(9_999_999_999).default(-1).describe("-1 chooses a fresh random seed; provide a number for reproducibility."),
       cfg_rescale: z.number().min(0).max(1).default(0),
-      quality_preset: z.enum(["auto", "standard", "light", "none"]).default("none")
+      quality_preset: z.enum(["auto", "standard", "light", "none"]).default("light")
         .describe("auto uses Standard V5 quality tags, but disables them for text rendering because they contain 'no text'."),
-      undesired_content_preset: z.enum(["minimal", "heavy", "light", "human_focus", "furry_focus", "none"]).default("minimal")
+      undesired_content_preset: z.enum(["minimal", "heavy", "light", "human_focus", "furry_focus", "none"]).default("light")
         .describe("minimal adds only 'bad quality'; custom negative content is appended after the preset."),
       render_text: z.string().optional().describe("Optional literal text to render. The server adds language tags and places Text: at the end as NovelAI requires."),
       text_language: z.enum(["auto", "english", "japanese", "chinese"]).default("auto"),

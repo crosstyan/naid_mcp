@@ -66,10 +66,10 @@ if (generatedBody?.parameters?.noise_schedule !== "karras") throw new Error("gen
 if (generatedBody?.parameters?.steps !== 14 || generatedBody?.parameters?.scale !== 5 || generatedBody?.parameters?.sampler !== "k_euler_ancestral") {
   throw new Error("unexpected default generation preset");
 }
-if (generatedBody?.input !== "test, (composition), 1.1::blue eyes ::") throw new Error(`unexpected normalized prompt: ${generatedBody?.input}`);
-if (generatedBody?.parameters?.negative_prompt !== "bad quality, 0.7::bad hands ::") throw new Error(`unexpected normalized UC: ${generatedBody?.parameters?.negative_prompt}`);
+if (generatedBody?.input !== "test, (composition), 1.1::blue eyes ::, very aesthetic, amazing quality, no text") throw new Error(`unexpected normalized prompt: ${generatedBody?.input}`);
+if (generatedBody?.parameters?.negative_prompt !== "lowres, lipstick, bad hands, bad anatomy, artistic error, sepia, white haze, worst quality, very displeasing, jpeg artifacts, 0::ai-generated::, 0.7::bad hands ::") throw new Error(`unexpected normalized UC: ${generatedBody?.parameters?.negative_prompt}`);
 if ("uc" in generatedBody.parameters) throw new Error("generation used obsolete uc field instead of negative_prompt");
-if (generatedBody?.parameters?.qualityPresetId !== "none" || generatedBody?.parameters?.ucPresetId !== "minimal") throw new Error("unexpected V5 preset IDs");
+if (generatedBody?.parameters?.qualityPresetId !== "light" || generatedBody?.parameters?.ucPresetId !== "light") throw new Error("unexpected V5 preset IDs");
 if (generatedBody?.parameters?.v4_negative_prompt?.caption?.base_caption !== generatedBody?.parameters?.negative_prompt) throw new Error("V5 negative captions disagree");
 if (generatedBody?.parameters?.v4_prompt?.use_order !== false || generatedBody?.parameters?.v4_negative_prompt?.use_order !== false) throw new Error("character ordering was enabled without a request");
 if (generatedBody?.parameters?.v4_prompt?.caption?.char_captions?.[0]?.char_caption !== "girl, 1.2::red hair ::") throw new Error("character prompt weight was not normalized");
