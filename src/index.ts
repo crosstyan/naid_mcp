@@ -77,7 +77,7 @@ function createServer(): McpServer {
         use_order: z.boolean().default(false),
       })).max(22).default([]),
       queue_id: z.string().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/).optional()
-        .describe("Optional stable ID for inspecting or cancelling this request before it enters flight."),
+        .describe("Optional idempotency key for inspection/cancellation. Concurrent calls with the same ID join the first request and return its result without generating twice."),
       confirm_spend_anlas: spend,
     }), annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   }, async (args, context) => {

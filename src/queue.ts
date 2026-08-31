@@ -30,6 +30,7 @@ type Entry<T = unknown> = {
 
 export class GenerationQueue {
   private readonly waiting: Entry<any>[] = [];
+  private readonly promises = new Map<string, Promise<any>>();
   private current?: Entry<any>;
 
   constructor(private readonly maxSize: number, private readonly minDelayMs: number, private readonly maxDelayMs: number) {
@@ -40,11 +41,12 @@ export class GenerationQueue {
   get size(): number { return this.waiting.length + (this.current ? 1 : 0); }
 
   enqueue<T>(task: (metadata: QueueMetadata) => Promise<T>, options: { id?: string; signal?: AbortSignal } = {}): Promise<T> {
-    if (this.size >= this.maxSize) return Promise.reject(new QueueFullError(this.maxSize));
     const id = options.id?.trim() || randomUUID();
-    if (this.has(id)) return Promise.reject(new Error(`NovelAI queue ID is already in use: ${id}`));
+    const existing = this.promises.get(id);
+    if (existing) return existing as Promise<T>;
+    if (this.size >= this.maxSize) return Promise.reject(new QueueFullError(this.maxSize));
     if (options.signal?.aborted) return Promise.reject(new QueueCancelledError(id));
-    return new Promise<T>((resolve, reject) => {
+    const promise = new Promise<T>((resolve, reject) => {
       const entry: Entry<T> = {
         id, initialPosition: this.size + 1, enqueuedAt: Date.now(), delayMs: this.randomDelay(),
         state: "queued", task, resolve, reject, signal: options.signal,
@@ -56,6 +58,10 @@ export class GenerationQueue {
       this.waiting.push(entry);
       queueMicrotask(() => this.pump());
     });
+    this.promises.set(id, promise);
+    const cleanup = () => { if (this.promises.get(id) === promise) this.promises.delete(id); };
+    void promise.then(cleanup, cleanup);
+    return promise;
   }
 
   snapshot(): QueueSnapshot {
@@ -97,7 +103,6 @@ export class GenerationQueue {
     return ids;
   }
 
-  private has(id: string): boolean { return this.current?.id === id || this.waiting.some((entry) => entry.id === id); }
   private rejectCancelled(entry: Entry): void { this.removeAbortListener(entry); entry.reject(new QueueCancelledError(entry.id)); }
 
   private pump(): void {

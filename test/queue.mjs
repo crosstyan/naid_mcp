@@ -7,6 +7,8 @@ const jobs = Array.from({ length: 8 }, (_, index) => queue.enqueue(async () => {
   await gate;
   return index;
 }, { id: `job-${index}` }));
+const duplicate = queue.enqueue(async () => { throw new Error("duplicate task must not run"); }, { id: "job-0" });
+if (queue.size !== 8) throw new Error(`duplicate increased queue size to ${queue.size}`);
 let rejected = false;
 try {
   await queue.enqueue(async () => 9);
@@ -19,4 +21,5 @@ await jobs[7].then(() => { throw new Error("cancelled job resolved"); }, () => u
 release();
 const results = await Promise.all(jobs.slice(0, 7));
 if (results.join(",") !== "0,1,2,3,4,5,6") throw new Error(`queue order changed: ${results}`);
-console.log("ok: generation queue capacity, order, and cancellation");
+if (await duplicate !== 0) throw new Error("duplicate did not join the original request");
+console.log("ok: generation queue capacity, idempotency, order, and cancellation");
