@@ -30,7 +30,7 @@ Resolution presets are `832×1216` / `1216×832` (13:19), `896×1152` / `1152×8
 
 The default generation preset is 14 steps, CFG 5, and Euler Ancestral. With `limit_opus_free=true` (the default), only the named normal-resolution presets are accepted; custom sizes, requests over 28 steps, and img2img are rejected rather than silently changed or allowed to incur Anlas. The server also checks that the V5 Opus usage allowance is available.
 
-The generation tool includes NovelAI's documented V5 Standard/Light quality tags, Heavy/Light/Human Focus/Furry Focus Undesired Content presets, exact numerical emphasis conversion, random or fixed seeds, up to 22 separate character prompts with per-character Undesired Content and free positioning, and explicit multilingual text rendering. Quality tags default to `none`; Undesired Content defaults to the custom `minimal` preset (`bad quality`) with any caller-supplied negative prompt appended.
+The generation tool includes NovelAI's documented V5 Standard/Light quality tags, Heavy/Light/Human Focus/Furry Focus Undesired Content presets, exact numerical emphasis conversion, random or fixed seeds, up to 22 separate character prompts with per-character Undesired Content and free positioning, and explicit multilingual text rendering. Quality tags default to `auto`: Standard tags are appended, but they are dropped whenever text rendering is requested, because those tags contain `no text` and would fight the requested text. Undesired Content defaults to the custom `light` preset (NovelAI V5 Light plus `0::ai-generated::`) with any caller-supplied negative prompt appended; `minimal` adds only `bad quality`.
 
 Paid generation cannot be authorized by a model argument. It is disabled unless the human operator starts the server with `NAID_ALLOW_ANLAS_SPEND=1`; only then may a call use `limit_opus_free=false`. Generated images are returned as local paths rather than image bytes, so an MCP client does not automatically place them in the model's context.
 
@@ -50,7 +50,12 @@ Optional environment variables:
 
 - `NAID_ENV_FILE`
 - `NAID_OUTPUT_DIR`
-- `NAID_IMAGE_BASE_URL` and `NAID_USER_BASE_URL` (useful for tests)
+- `NAID_IMAGE_BASE_URL` (default `https://image.novelai.net`): base URL for `/ai/generate-image` and `/ai/augment-image`
+- `NAID_USER_BASE_URL` (default `NAID_IMAGE_BASE_URL`): base URL for `/user/subscription`
+
+Both endpoint variables are read from the process environment first and from
+the env file second, so pointing the server at a mirror or a self-hosted
+NovelAI-compatible endpoint needs no wrapper script:
 
 Build and test:
 

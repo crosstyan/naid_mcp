@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { zipSync } from "fflate";
@@ -31,9 +31,16 @@ const mock = createServer(async (request, response) => {
 await new Promise((resolve) => mock.listen(0, "127.0.0.1", resolve));
 const address = mock.address();
 const baseUrl = `http://127.0.0.1:${address.port}`;
-process.env.NAI_ACCESS_TOKEN = "test-token";
-process.env.NAID_IMAGE_BASE_URL = baseUrl;
-process.env.NAID_USER_BASE_URL = baseUrl;
+const envFile = join(temporary, "naid.env");
+await writeFile(envFile, [
+  "NOVEL_AI_API_KEY=test-token",
+  `NAID_IMAGE_BASE_URL=${baseUrl}/`,
+  `NAID_USER_BASE_URL=${baseUrl}/`,
+  "",
+].join("\n"));
+delete process.env.NOVEL_AI_API_KEY;
+delete process.env.NAI_ACCESS_TOKEN;
+process.env.NAID_ENV_FILE = envFile;
 process.env.NAID_OUTPUT_DIR = temporary;
 process.env.NAID_QUEUE_MIN_DELAY_MS = "0";
 process.env.NAID_QUEUE_MAX_DELAY_MS = "0";

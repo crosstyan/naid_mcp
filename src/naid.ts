@@ -9,6 +9,10 @@ import { generationQueue, type QueueMetadata } from "./queue.js";
 const DEFAULT_IMAGE_BASE_URL = "https://image.novelai.net";
 const DEFAULT_USER_BASE_URL = DEFAULT_IMAGE_BASE_URL;
 const DEFAULT_ENV_FILE = join(homedir(), ".config/naid-mcp/.env");
+// Resolution order for both endpoint variables: process environment, then the
+// env file, then the NovelAI default. Override them to talk to a mirror or a
+// self-hosted NovelAI-compatible endpoint.
+let envFileValues: Record<string, string> | undefined;
 const DEFAULT_OUTPUT_DIR = join(homedir(), "Pictures/NovelAI");
 
 export const models = [
@@ -83,17 +87,41 @@ function parseEnv(text: string): Record<string, string> {
   return result;
 }
 
+async function readEnvFile(): Promise<Record<string, string>> {
+  if (envFileValues) return envFileValues;
+  const envFile = process.env.NAID_ENV_FILE ?? DEFAULT_ENV_FILE;
+  try {
+    envFileValues = parseEnv(await readFile(envFile, "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    envFileValues = {};
+  }
+  return envFileValues;
+}
+
+// Resolves one NovelAI endpoint variable, so `NAID_IMAGE_BASE_URL` and
+// `NAID_USER_BASE_URL` in the env file behave exactly like exported ones.
+export async function novelEndpoint(variable: "NAID_IMAGE_BASE_URL" | "NAID_USER_BASE_URL"): Promise<string> {
+  const fallback = variable === "NAID_IMAGE_BASE_URL" ? DEFAULT_IMAGE_BASE_URL : DEFAULT_USER_BASE_URL;
+  const configured = process.env[variable] ?? (await readEnvFile())[variable] ?? fallback;
+  const base = configured.trim().replace(/\/+$/, "");
+  try {
+    const parsed = new URL(base);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("unsupported protocol");
+    if (!parsed.hostname) throw new Error("missing host");
+  } catch {
+    throw new Error(`${variable} must be an http(s) base URL such as https://image.novelai.net: ${configured}`);
+  }
+  return base;
+}
+
 export async function getAccessToken(): Promise<string> {
   if (process.env.NOVEL_AI_API_KEY) return process.env.NOVEL_AI_API_KEY;
   if (process.env.NAI_ACCESS_TOKEN) return process.env.NAI_ACCESS_TOKEN;
   const envFile = process.env.NAID_ENV_FILE ?? DEFAULT_ENV_FILE;
-  try {
-    const values = parseEnv(await readFile(envFile, "utf8"));
-    if (values.NOVEL_AI_API_KEY) return values.NOVEL_AI_API_KEY;
-    if (values.NAI_ACCESS_TOKEN) return values.NAI_ACCESS_TOKEN;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  const values = await readEnvFile();
+  if (values.NOVEL_AI_API_KEY) return values.NOVEL_AI_API_KEY;
+  if (values.NAI_ACCESS_TOKEN) return values.NAI_ACCESS_TOKEN;
   throw new Error(`NOVEL_AI_API_KEY is not configured. Export it to the MCP environment or set it in ${envFile}`);
 }
 
@@ -124,7 +152,7 @@ async function naiFetch(url: string, token: string, init: RequestInit, timeoutMs
 
 export async function getSubscription(timeoutMs = 30_000): Promise<SubscriptionStatus> {
   const token = await getAccessToken();
-  const base = process.env.NAID_USER_BASE_URL ?? DEFAULT_USER_BASE_URL;
+  const base = await novelEndpoint("NAID_USER_BASE_URL");
   const response = await naiFetch(`${base}/user/subscription`, token, { method: "GET" }, timeoutMs);
   const data = await response.json() as {
     tier?: number;
@@ -310,7 +338,7 @@ export async function generateImage(input: GenerateInput): Promise<GenerationRes
     params.tag_hint_transparent_background = true;
   }
   const before = beforeStatus.anlas;
-  const base = process.env.NAID_IMAGE_BASE_URL ?? DEFAULT_IMAGE_BASE_URL;
+  const base = await novelEndpoint("NAID_IMAGE_BASE_URL");
   const response = await naiFetch(`${base}/ai/generate-image`, token, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -347,7 +375,7 @@ export async function directorImage(args: {
   if (args.action === "colorize") { options.defry = args.strength ?? 0; options.prompt = args.prompt ?? ""; }
   if (args.action === "emotion") { options.defry = args.strength ?? 0; options.prompt = `${args.mood ?? "neutral"};;${args.prompt ?? ""}`; }
   const before = await balanceOrUndefined();
-  const base = process.env.NAID_IMAGE_BASE_URL ?? DEFAULT_IMAGE_BASE_URL;
+  const base = await novelEndpoint("NAID_IMAGE_BASE_URL");
   const response = await naiFetch(`${base}/ai/augment-image`, token, {
     method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ req_type: args.action, width, height, image: image.toString("base64"), ...options }),
